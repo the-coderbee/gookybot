@@ -3,6 +3,7 @@ from discord.ext import commands
 from gookybot.core.bot import GookyBot
 from typing import Optional
 import logging
+from gookybot.utils.embeds import create_embed
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,10 @@ class HelpCog(commands.Cog, name="Help"):
 
         if command_name is None:
             # --- Show the main help embed (all commands) ---
-            embed = discord.Embed(
+            embed = create_embed(
                 title="Gooky Bot Help",
                 description="Here is a list of all available commands.\n"
                             f"Use `/help <command_name>` for more info on a specific command.",
-                color=discord.Color.blue()
             )
 
             for cog_name, cog in self.bot.cogs.items():
@@ -80,10 +80,9 @@ class HelpCog(commands.Cog, name="Help"):
                  return
 
 
-            embed = discord.Embed(
+            embed = create_embed(
                 title=f"Help: `/{cmd.name}`",
                 description=cmd.description or "No description provided.",
-                color=discord.Color.green()
             )
 
             params = []

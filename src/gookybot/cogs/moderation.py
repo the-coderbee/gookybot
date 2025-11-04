@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 import re # For parsing duration
 from datetime import timedelta # For timeout duration
-
+from gookybot.utils.embeds import create_embed
 logger = logging.getLogger(__name__)
 
 class ModerationCog(commands.Cog, name="Moderation"):
@@ -62,10 +62,9 @@ Set of moderation commands for server admins."""
             await member.kick(reason=f"Kicked by {ctx.author} | Reason: {reason}")
             logger.info(f"User {member} (ID: {member.id}) was kicked by {ctx.author} for: {reason}")
             
-            embed = discord.Embed(
+            embed = create_embed(
                 title="Member Kicked",
                 description=f"**{member.mention}** was kicked by {ctx.author.mention}.",
-                color=discord.Color.orange()
             )
             embed.add_field(name="Reason", value=reason, inline=False)
             await ctx.send(embed=embed)
@@ -97,10 +96,9 @@ Set of moderation commands for server admins."""
             await member.ban(reason=f"Banned by {ctx.author} | Reason: {reason}")
             logger.info(f"User {member} (ID: {member.id}) was banned by {ctx.author} for: {reason}")
             
-            embed = discord.Embed(
+            embed = create_embed(
                 title="Member Banned",
                 description=f"**{member.mention}** was banned by {ctx.author.mention}.",
-                color=discord.Color.red()
             )
             embed.add_field(name="Reason", value=reason, inline=False)
             await ctx.send(embed=embed)
@@ -145,10 +143,9 @@ Set of moderation commands for server admins."""
             await member.timeout(delta, reason=f"Timed out by {ctx.author} | Reason: {reason}")
             logger.info(f"User {member} (ID: {member.id}) was timed out by {ctx.author} for {duration}. Reason: {reason}")
 
-            embed = discord.Embed(
+            embed = create_embed(
                 title="Member Timed Out",
                 description=f"**{member.mention}** was timed out by {ctx.author.mention}.",
-                color=discord.Color.yellow()
             )
             embed.add_field(name="Duration", value=duration, inline=True)
             embed.add_field(name="Reason", value=reason, inline=True)
@@ -236,9 +233,9 @@ Set of moderation commands for server admins."""
             except ValueError:
                 await ctx.send("Invalid color. Use a hex code (e.g., `#FF0000`) or a color name (e.g., `red`).", ephemeral=True)
                 return
-            embed = discord.Embed(title=title, description=description, color=embed_color)
+            embed = create_embed(title=title, description=description, color=embed_color)
         else:
-            embed = discord.Embed(title=title, description=description)
+            embed = create_embed(title=title, description=description)
 
         # Set optional attributes
         if image_url:

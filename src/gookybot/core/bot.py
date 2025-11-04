@@ -46,15 +46,24 @@ class GookyBot(commands.Bot):
         logger.info("Database initialized.")
 
         await self.load_all_cogs()
-
-        logger.info("Syncing all commands...")
+        
+        # This is the global sync for production.
+        # It can take up to an hour to update for the first time.
+        logger.info("Syncing global command tree...")
         await self.tree.sync()
         logger.info("Global sync complete.")
-
+        
         logger.info("Bot setup complete!")
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('------')
 
     async def on_ready(self):
-        print(f'Logged in as {self.user} (ID: {self.user.id})')
-        print('------')
+        """Called when the bot is fully ready and connected."""
+        # Set the bot's presence
+        activity = discord.Activity(
+            type=discord.ActivityType.watching, 
+            name="Flix's Citadel"
+        )
+        await self.change_presence(status=discord.Status.online, activity=activity)
+        logger.info("Bot presence set.")
+        logger.info("Bot is ready!")

@@ -4,6 +4,7 @@ from typing import Optional
 import discord
 from discord.ext import commands
 from gookybot.core.bot import GookyBot
+from gookybot.utils.embeds import create_embed
 
 
 logger = logging.getLogger(__name__)
@@ -107,12 +108,11 @@ class GeneralCog(commands.Cog, name="General"):
         guild = member.guild
         
         # Create the welcome embed
-        embed = discord.Embed(
+        embed = create_embed(
             title=f"Welcome to {guild.name}, {member.display_name}!",
             description=(
                 f"We're excited to have you here. Feel free to look around and introduce yourself!\n\n"
             ),
-            color=discord.Color.blue()
         )
         
         embed.add_field(

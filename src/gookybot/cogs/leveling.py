@@ -4,7 +4,7 @@ import discord
 from typing import List
 from discord.ext import commands, tasks
 import time
-
+from gookybot.utils.embeds import create_embed
 from gookybot.core.bot import GookyBot
 from gookybot.database.models.leveling_profile import LevelingProfile
 from gookybot.features.levelling.manager import LevelingManager
@@ -27,9 +27,8 @@ class LeaderboardView(discord.ui.View):
         end_index = start_index + self.per_page
         page_data = self.data[start_index:end_index]
 
-        embed = discord.Embed(
+        embed = create_embed(
             title="Server Leaderboard",
-            color=discord.Color.blue()
         )
 
         description = []
@@ -206,7 +205,7 @@ class LevelingCog(commands.Cog):
 
         xp_for_next = self.level_manager.xp_for_level(profile.level + 1)
         
-        embed = discord.Embed(title=f"Level for {target_user.display_name}", color=target_user.color)
+        embed = create_embed(title=f"Level for {target_user.display_name}",)
         embed.set_thumbnail(url=target_user.display_avatar.url)
         embed.add_field(name="Level", value=f"`{profile.level}`", inline=True)
         embed.add_field(name="XP", value=f"`{profile.xp} / {xp_for_next}`", inline=True)
@@ -293,7 +292,7 @@ class LevelingCog(commands.Cog):
             channel = ctx.guild.get_channel(channel_id)
             description += f"{i+1}. {channel.mention if channel else f'Unknown Channel (ID: {channel_id})'}\n"
         
-        embed = discord.Embed(title="Engagement Channels", description=description, color=discord.Color.blue())
+        embed = create_embed(title="Engagement Channels", description=description,)
         await ctx.send(embed=embed, ephemeral=True)
 
 

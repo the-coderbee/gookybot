@@ -3,7 +3,7 @@ from discord.ext import commands
 import logging
 import aiohttp
 from bs4 import BeautifulSoup
-
+from gookybot.utils.embeds import create_embed
 from gookybot.core.bot import GookyBot
 
 
@@ -71,11 +71,10 @@ class AutomationCog(commands.Cog):
 
         image_url = await self.fetch_wallpaper_image(link)
         
-        embed = discord.Embed(
+        embed = create_embed(
             title="Steam Wallpaper Share",
             description=f"**{ctx.author.display_name}** shared a wallpaper!\n\n"
             f"[Visit Steam page]({link})",
-            color=discord.Color.blue()
         )
 
         if image_url:
