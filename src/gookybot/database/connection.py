@@ -14,12 +14,9 @@ if not DATABASE_URL:
     logger.critical("DATABASE_URL environment variable not set. Aborting.")
     raise ValueError("DATABASE_URL environment variable not set.")
 
-# Force the URL to use the 'asyncpg' (async) driver for the bot.
-# This is the critical fix for deployment.
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Create the async engine with the *corrected* URL
 try:
     engine = create_async_engine(DATABASE_URL)
     async_session_maker = async_sessionmaker(engine, expire_on_commit=False)

@@ -19,15 +19,10 @@ class GeneralCog(commands.Cog, name="General"):
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         """Catches and handles all command errors."""
         
-        # This prevents any commands with local error handlers
-        # from being handled by this global handler.
         if hasattr(ctx.command, 'on_error'):
             return
 
-        # Get the original, underlying error
         error = getattr(error, 'original', error)
-
-        # --- Handle Specific, Common Errors ---
 
         if isinstance(error, commands.NotOwner):
             logger.warning(f"{ctx.author} tried to run owner-only command '{ctx.command.name}'.")
@@ -39,25 +34,18 @@ class GeneralCog(commands.Cog, name="General"):
             await ctx.send(f"You don't have permission to do that. You're missing: `{missing_perms}`", ephemeral=True)
             
         elif isinstance(error, commands.CheckFailure):
-            # A generic check failed (e.g., @commands.is_owner(), @commands.has_guild_permissions)
             logger.warning(f"{ctx.author} failed a check for command '{ctx.command.name}'.")
             await ctx.send("You do not have the necessary permissions to run this command.", ephemeral=True)
             
         elif isinstance(error, commands.BadArgument):
-            # User provided an invalid argument (e.g., 'abc' for an 'int')
             await ctx.send(f"Invalid argument. Please check the help for `/{ctx.command.name}`.", ephemeral=True)
 
-        # --- Handle All Other Errors ---
-        
         else:
-            # This is a real, unexpected bug. Log the full traceback.
             logger.error(f"Ignoring unhandled exception in command '{ctx.command.name}':", exc_info=error)
             
-            # Send a generic error message
             try:
                 await ctx.send("An unexpected error occurred. I've logged it for the developer.", ephemeral=True)
             except discord.NotFound:
-                # This can happen if the original interaction failed or was deferred
                 pass
 
     @commands.Cog.listener()
@@ -65,10 +53,8 @@ class GeneralCog(commands.Cog, name="General"):
         """Called when the bot joins a new guild."""
         logger.info(f"Bot joined a new guild: {guild.name} ({guild.id})")
         
-        # 1. Create the guild entry in the database
         await self.guild_manager.get_or_create_guild(guild.id)
         
-        # 2. Send a DM to the guild owner
         guild_owner = guild.owner
         if guild_owner:
             owner_message = (
@@ -107,7 +93,6 @@ class GeneralCog(commands.Cog, name="General"):
         """Called when a new member joins a guild."""
         guild = member.guild
         
-        # Create the welcome embed
         embed = create_embed(
             title=f"Welcome to {guild.name}, {member.display_name}!",
             description=(
@@ -145,7 +130,6 @@ class GeneralCog(commands.Cog, name="General"):
     async def setprefix(self, ctx: commands.Context, new_prefix: str):
         """Sets a new command prefix for this server."""
         
-        # Add some basic validation
         if len(new_prefix) > 10:
             await ctx.send("The prefix cannot be longer than 10 characters.", ephemeral=True)
             return
@@ -173,7 +157,6 @@ class GeneralCog(commands.Cog, name="General"):
         - `global`: Syncs commands globally. (Can take up to 1 hour)
         """
         if not scope:
-            # Default: Sync to current guild
             try:
                 guild = ctx.guild
                 self.bot.tree.copy_global_to(guild=guild)
@@ -187,7 +170,6 @@ class GeneralCog(commands.Cog, name="General"):
                 return
 
         if scope.lower() == "global":
-            # Sync globally
             try:
                 await self.bot.tree.sync()
                 logger.info(f"Synced command tree globally by {ctx.author}")
@@ -201,5 +183,4 @@ class GeneralCog(commands.Cog, name="General"):
 
 
 async def setup(bot: GookyBot):
-    # bot.add_cog is synchronous, so we don't use await
     await bot.add_cog(GeneralCog(bot))

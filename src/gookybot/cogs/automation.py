@@ -83,7 +83,6 @@ class AutomationCog(commands.Cog):
             embed.set_thumbnail(url="https://store.cloudflare.steamstatic.com/public/images/v6/logo_steam_footer.png")
         
         view = CopyLinkView(link_to_copy=link)
-
         await ctx.send(embed=embed, view=view)
 
 

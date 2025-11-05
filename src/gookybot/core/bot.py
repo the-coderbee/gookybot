@@ -24,11 +24,9 @@ class GookyBot(commands.Bot):
         cogs_dir = Path(__file__).parent.parent / 'cogs'
         loaded_cogs = 0
         for cog_file in cogs_dir.glob("*.py"):
-            # Ignore dunder files like __init__.py
             if cog_file.name.startswith("__"):
                 continue
 
-            # The module path for discord.py is dot-separated
             extension = f'gookybot.cogs.{cog_file.stem}'
             try:
                 await self.load_extension(extension)
@@ -43,8 +41,6 @@ class GookyBot(commands.Bot):
 
         await self.load_all_cogs()
         
-        # This is the global sync for production.
-        # It can take up to an hour to update for the first time.
         logger.info("Syncing global command tree...")
         await self.tree.sync()
         logger.info("Global sync complete.")
@@ -55,7 +51,6 @@ class GookyBot(commands.Bot):
 
     async def on_ready(self):
         """Called when the bot is fully ready and connected."""
-        # Set the bot's presence
         activity = discord.Activity(
             type=discord.ActivityType.watching, 
             name="Flix's Citadel"

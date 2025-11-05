@@ -15,7 +15,6 @@ class ModerationCog(commands.Cog, name="Moderation"):
 
     def __init__(self, bot: GookyBot):
         self.bot = bot
-        # Regex to parse duration strings like "1d", "3h", "10m", "30s"
         self.duration_regex = re.compile(
             r"((?P<weeks>\d+?)w)?"
             r"((?P<days>\d+?)d)?"
@@ -127,14 +126,12 @@ class ModerationCog(commands.Cog, name="Moderation"):
             await ctx.send("You cannot time out the server owner.", ephemeral=True)
             return
 
-        # Parse the duration string
         delta = self._parse_duration(duration)
         if delta is None:
             await ctx.send("Invalid duration format. Use `w`, `d`, `h`, `m`, `s`.\nExample: `1d12h` or `30m`.", ephemeral=True)
             return
         
-        # Discord's maximum timeout is 28 days
-        if delta.total_seconds() > 2419200: # 28 days
+        if delta.total_seconds() > 2419200:
             await ctx.send("The maximum timeout duration is 28 days.", ephemeral=True)
             return
 
@@ -219,7 +216,6 @@ class ModerationCog(commands.Cog, name="Moderation"):
         if field_value:
             field_value = field_value.replace(r"\n", "\n")
 
-        # Create embed
         if color:
             try:
                 embed_color = discord.Color.from_string(color)
@@ -230,7 +226,6 @@ class ModerationCog(commands.Cog, name="Moderation"):
         else:
             embed = create_embed(title=title, description=description)
 
-        # Set optional attributes
         if image_url:
             embed.set_image(url=image_url)
         if thumbnail_url:
@@ -242,7 +237,6 @@ class ModerationCog(commands.Cog, name="Moderation"):
         if field_name and field_value:
             embed.add_field(name=field_name, value=field_value, inline=False)
 
-        # Send the embed
         try:
             await channel.send(embed=embed)
             await ctx.send(f"Embed successfully sent to {channel.mention}.", ephemeral=True)
@@ -263,10 +257,8 @@ class ModerationCog(commands.Cog, name="Moderation"):
     ):
         """Sends a plain text message to a channel. Use \n for new lines."""
         
-        # Process \n for new lines, just like in the embed command
         message_content = message.replace(r"\n", "\n")
 
-        # Send the message
         try:
             await channel.send(message_content)
             await ctx.send(f"Message successfully sent to {channel.mention}.", ephemeral=True)

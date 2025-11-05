@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class LeaderboardView(discord.ui.View):
     def __init__(self, bot: GookyBot, data: List[LevelingProfile], per_page: int = 10):
-        super().__init__(timeout=180)  # 3 minute timeout
+        super().__init__(timeout=180)
         self.bot = bot
         self.data = data
         self.per_page = per_page
@@ -35,7 +35,6 @@ class LeaderboardView(discord.ui.View):
         for i, profile in enumerate(page_data):
             rank = start_index + i + 1
             try:
-                # Fetch user to get their current name
                 user = await self.bot.fetch_user(profile.user_discord_id)
                 username = user.display_name
             except discord.NotFound:
@@ -211,9 +210,6 @@ class LevelingCog(commands.Cog):
         embed.add_field(name="XP", value=f"`{profile.xp} / {xp_for_next}`", inline=True)
         await ctx.send(embed=embed)
 
-
-    # --- NEW 'rank' COMMAND ---
-
     @commands.hybrid_command(name="rank", description="Check a member's server rank.")
     async def rank(self, ctx: commands.Context, member: discord.Member = None):
         """Checks your (or another member's) position on the leaderboard."""
@@ -228,30 +224,23 @@ class LevelingCog(commands.Cog):
             
         await ctx.send(f"{target_user.display_name} is **Rank #{rank}** on the server.")
 
-
-    # --- NEW 'leaderboard' COMMAND ---
-
     @commands.hybrid_command(name="leaderboard", description="Shows the server XP leaderboard.")
     async def leaderboard(self, ctx: commands.Context):
         """Displays the top users in the server, sorted by XP."""
         
-        await ctx.defer() # This can take a moment
+        await ctx.defer()
         
-        # 1. Fetch the sorted data from the manager
         all_profiles = await self.level_manager.get_leaderboard(ctx.guild.id)
         
         if not all_profiles:
             await ctx.send("The leaderboard is empty! No one has earned XP yet.")
             return
 
-        # 2. Create the View and the first Embed
         view = LeaderboardView(self.bot, all_profiles)
         embed = await view.get_page_embed()
         
-        # 3. Send the message
         await ctx.send(embed=embed, view=view)
     
-    # new admin commands
     @commands.hybrid_group(name="leveling", description="Commands to configure the leveling system.")
     @commands.has_guild_permissions(manage_guild=True)
     async def leveling(self, ctx: commands.Context):

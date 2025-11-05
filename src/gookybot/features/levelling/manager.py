@@ -60,12 +60,10 @@ class LevelingManager:
                 logger.error(f"Error retrieving user profile: {e}", exc_info=True)
                 return None
 
-    # --- NEW FUNCTION FOR /rank ---
     async def get_user_rank(self, user_id: int, guild_id: int) -> Optional[int]:
         """Gets the user's rank number in a specific guild."""
         async with self.db_session() as session:
             try:
-                # Create a subquery that ranks all users in the guild
                 subquery = select(
                     LevelingProfile.user_discord_id,
                     func.row_number().over(
@@ -73,7 +71,6 @@ class LevelingManager:
                     ).label("rank")
                 ).where(LevelingProfile.guild_discord_id == guild_id).subquery()
 
-                # Select the rank for the specific user from the subquery
                 stmt = select(subquery.c.rank).where(
                     subquery.c.user_discord_id == user_id
                 )
@@ -84,7 +81,6 @@ class LevelingManager:
                 logger.error(f"Error getting user rank: {e}", exc_info=True)
                 return None
 
-    # --- NEW FUNCTION FOR /leaderboard ---
     async def get_leaderboard(self, guild_id: int) -> List[LevelingProfile]:
         """Gets the full, sorted leaderboard for a guild."""
         async with self.db_session() as session:

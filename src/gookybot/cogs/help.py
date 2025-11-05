@@ -20,7 +20,6 @@ class HelpCog(commands.Cog, name="Help"):
         await ctx.defer(ephemeral=True)
 
         if command_name is None:
-            # --- Show the main help embed (all commands) ---
             embed = create_embed(
                 title="Gooky Bot Help",
                 description="Here is a list of all available commands.\n"
@@ -32,23 +31,19 @@ class HelpCog(commands.Cog, name="Help"):
                 commands_list = []
                 for cmd in cog_commands:
                     
-                    # --- THIS IS FIX #1 ---
-                    # We must use try/except because cmd.can_run() RAISES
-                    # an error (like NotOwner) if a check fails.
                     can_run = False
                     try:
                         if not cmd.hidden and await cmd.can_run(ctx):
                             can_run = True
                     except commands.CheckFailure:
-                        pass  # User cannot run this command, so we skip it
+                        pass
                     
                     if not can_run:
                         continue
-                    # --- END FIX #1 ---
                     
                     if isinstance(cmd, (commands.HybridCommand, commands.HybridGroup)):
                         commands_list.append(f"**`/{cmd.name}`** - {cmd.description or 'No description'}")
-                    elif isinstance(cmd, commands.Command): # For prefix-only commands
+                    elif isinstance(cmd, commands.Command):
                         commands_list.append(f"`{ctx.prefix}{cmd.name}` - {cmd.description or 'No description'}")
 
                 
@@ -62,14 +57,12 @@ class HelpCog(commands.Cog, name="Help"):
             await ctx.send(embed=embed)
 
         else:
-            # --- Show help for a specific command ---
             cmd = self.bot.get_command(command_name.lower())
             
             if cmd is None or cmd.hidden:
                 await ctx.send(f"Sorry, I couldn't find a command named `{command_name}`.", ephemeral=True)
                 return
 
-            # Also check permissions for the specific command
             try:
                 if not await cmd.can_run(ctx):
                     await ctx.send(f"Sorry, you do not have permission to run `{command_name}`.", ephemeral=True)
@@ -99,8 +92,6 @@ class HelpCog(commands.Cog, name="Help"):
                 subcommands = []
                 for sub_cmd in cmd.commands:
                     
-                    # --- THIS IS FIX #2 ---
-                    # Add the same try/except block for subcommands
                     can_run_sub = False
                     try:
                         if not sub_cmd.hidden and await sub_cmd.can_run(ctx):
@@ -110,7 +101,6 @@ class HelpCog(commands.Cog, name="Help"):
                     
                     if not can_run_sub:
                         continue
-                    # --- END FIX #2 ---
                     
                     subcommands.append(f"`{sub_cmd.name}` - {sub_cmd.description or 'No description'}")
                 

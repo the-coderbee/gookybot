@@ -84,7 +84,6 @@ class GuildManager:
         """Sets a new command prefix for a guild."""
         async with self.db_session() as session:
             try:
-                # We use session=session to keep the object attached
                 guild = await self.get_or_create_guild(guild_id, session=session)
                 if not guild:
                     return False
