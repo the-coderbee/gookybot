@@ -4,10 +4,22 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+import sys
+import os
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    # Alembic needs a SYNC driver. The bot uses ASYNC.
+    # We must replace 'asyncpg' with 'psycopg2' for Alembic to work.
+    if db_url.startswith("postgresql+asyncpg://"):
+        db_url = db_url.replace("+asyncpg://", "+psycopg2://", 1)
+    # Set the URL for Alembic to use
+    config.set_main_option('sqlalchemy.url', db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
