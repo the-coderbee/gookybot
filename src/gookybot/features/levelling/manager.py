@@ -1,7 +1,6 @@
 from typing import List, Optional
 from gookybot.core.bot import GookyBot
-from gookybot.database.connection import async_session_maker
-from gookybot.database.models import Guild, LevelingProfile
+from gookybot.database.models import LevelingProfile
 import logging
 from sqlalchemy import select, func, desc
 

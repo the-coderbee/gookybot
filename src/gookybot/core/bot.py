@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import discord
 from discord.ext import commands
-from gookybot.database.connection import async_session_maker, init_db
+from gookybot.database.connection import async_session_maker
 import logging
 from gookybot.features.guild_management.manager import GuildManager
 
@@ -41,10 +41,7 @@ class GookyBot(commands.Bot):
     
     async def setup_hook(self):
         logger.info(f"Starting setup for {self.user}...")
-
-        await init_db()
-        logger.info("Database initialized.")
-
+        
         await self.load_all_cogs()
         
         # This is the global sync for production.
