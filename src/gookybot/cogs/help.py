@@ -1,4 +1,3 @@
-import discord
 from discord.ext import commands
 from gookybot.core.bot import GookyBot
 from typing import Optional

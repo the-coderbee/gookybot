@@ -1,10 +1,7 @@
 import os
 import asyncio
-import discord
-from discord.ext import commands
 from dotenv import load_dotenv
 import logging
-from gookybot.database.connection import init_db
 from gookybot.config.logging import setup_logging
 from gookybot.core.bot import GookyBot
 logger = logging.getLogger(__name__)

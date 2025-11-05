@@ -3,14 +3,15 @@ from discord.ext import commands
 from gookybot.core.bot import GookyBot
 import logging
 from typing import Optional
-import re # For parsing duration
-from datetime import timedelta # For timeout duration
+import re
+from datetime import timedelta
 from gookybot.utils.embeds import create_embed
+
 logger = logging.getLogger(__name__)
 
+
 class ModerationCog(commands.Cog, name="Moderation"):
-    """
-Set of moderation commands for server admins."""
+    """Set of moderation commands for server admins."""
 
     def __init__(self, bot: GookyBot):
         self.bot = bot
@@ -107,8 +108,6 @@ Set of moderation commands for server admins."""
         except Exception as e:
             await ctx.send(f"An error occurred while trying to ban {member.mention}: {e}", ephemeral=True)
 
-    # --- NEW TIMEOUT COMMAND ---
-
     @commands.hybrid_command(
         name="timeout",
         description="Times out a member for a specified duration (e.g., 10m, 1h, 3d)."
@@ -177,13 +176,10 @@ Set of moderation commands for server admins."""
             return
 
         try:
-            # Defer the response for slash commands, as deleting can take time
             await ctx.defer(ephemeral=True)
             
-            # Purge the messages
             deleted_messages = await ctx.channel.purge(limit=amount)
             
-            # Send a temporary confirmation message
             await ctx.send(f"Successfully cleared {len(deleted_messages)} messages.", ephemeral=True, delete_after=5)
             logger.info(f"{ctx.author} cleared {len(deleted_messages)} messages in {ctx.channel.name}")
 
@@ -210,17 +206,14 @@ Set of moderation commands for server admins."""
     ):
         """Creates and sends a custom embed. Use \n for new lines."""
         
-        # At least one of the main components must be present
         if not any([title, description, image_url, author, field_name]):
             await ctx.send("You can't send an empty embed. Please provide at least a title, description, image, or field.", ephemeral=True)
             return
-            
-        # Validate field
+        
         if (field_name and not field_value) or (not field_name and field_value):
             await ctx.send("To add a field, you must provide *both* a `field_name` and a `field_value`.", ephemeral=True)
             return
-            
-        # Process \n for new lines
+        
         if description:
             description = description.replace(r"\n", "\n")
         if field_value:
@@ -260,7 +253,6 @@ Set of moderation commands for server admins."""
             await ctx.send(f"An error occurred: {e}", ephemeral=True)
             logger.error(f"Error sending embed: {e}", exc_info=True)
     
-    # --- NEW COMMAND ---
     @commands.hybrid_command(name="say", description="Sends a plain text message as the bot.")
     @commands.has_guild_permissions(manage_guild=True)
     async def say(

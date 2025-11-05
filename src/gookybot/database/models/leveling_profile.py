@@ -1,4 +1,4 @@
-from sqlalchemy import String, BigInteger, UniqueConstraint, Integer
+from sqlalchemy import BigInteger, UniqueConstraint, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from .base import Base
 
