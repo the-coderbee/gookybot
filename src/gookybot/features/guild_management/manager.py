@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, List
 
 import discord
 from discord.ext import commands
@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from gookybot.database.models.guild import Guild
 
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 logger = logging.getLogger(__name__)
 
@@ -25,19 +26,28 @@ class GuildManager:
                 return await self._get_or_create_guild_impl(guild_id, new_session)
     
     async def _get_or_create_guild_impl(self, guild_id: int, session: AsyncSession) -> Optional[Guild]:
-        """Internal implementation of get_or_create_guild."""
+        """
+        Atomically gets a guild's settings, creating it if it doesn't exist.
+        This is now safe from race conditions.
+        """
         try:
-            stmt = select(Guild).where(Guild.discord_id == guild_id)
-            guild = (await session.execute(stmt)).scalar_one_or_none()
-
-            if not guild:
-                logger.info(f"Guild ID {guild_id} not found. Creating new entry.")
-                guild = Guild(discord_id=guild_id)
-                session.add(guild)
-                await session.commit()
-                logger.info(f"Created new guild entry for guild ID {guild_id}")
+            insert_stmt = pg_insert(Guild).values(
+                discord_id=guild_id
+            ).on_conflict_do_nothing(
+                index_elements=['discord_id']
+            )
+            
+            await session.execute(insert_stmt)
+            
+            select_stmt = select(Guild).where(Guild.discord_id == guild_id)
+            
+            guild = (await session.execute(select_stmt)).scalar_one()
+            
+            await session.commit()
             return guild
+            
         except Exception as e:
+            await session.rollback()
             logger.error(f"Error retrieving or creating guild ID {guild_id}: {e}", exc_info=True)
             return None
 
@@ -47,10 +57,20 @@ class GuildManager:
             return "g!"
         
         guild = await self.get_or_create_guild(message.guild.id)
-        if guild:
+        if guild and guild.prefix:
             return commands.when_mentioned_or(guild.prefix)(bot, message)
-        else:
-            return "g!"
+        return commands.when_mentioned_or("g!")(bot, message)
+    
+    async def set_prefix(self, guild_id: int, prefix: str) -> bool:
+        """Sets a new prefix for a guild."""
+        async with self.db_session() as session:
+            guild = await self.get_or_create_guild(guild_id, session=session)
+            if not guild:
+                return False
+            
+            guild.prefix = prefix
+            await session.commit()
+            return True
     
     async def add_engagement_channel(self, guild_id: int, channel_id: int) -> bool:
         async with self.db_session() as session:
@@ -79,19 +99,3 @@ class GuildManager:
                 await session.commit()
                 return True
             return False
-
-    async def set_prefix(self, guild_id: int, new_prefix: str) -> bool:
-        """Sets a new command prefix for a guild."""
-        async with self.db_session() as session:
-            try:
-                guild = await self.get_or_create_guild(guild_id, session=session)
-                if not guild:
-                    return False
-                
-                guild.prefix = new_prefix
-                await session.commit()
-                logger.info(f"Guild {guild_id} prefix changed to '{new_prefix}'")
-                return True
-            except Exception as e:
-                logger.error(f"Error setting prefix for guild {guild_id}: {e}", exc_info=True)
-                return False
