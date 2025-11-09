@@ -16,5 +16,5 @@ class LevelingProfile(Base):
     level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('user_discord_id', 'guild_discord_id', name='_user_guild_uc'),
+        UniqueConstraint('user_discord_id', 'guild_discord_id', name='_leveling_profiles_user_guild_uc'),
     )

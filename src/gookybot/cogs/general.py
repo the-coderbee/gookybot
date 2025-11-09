@@ -92,7 +92,18 @@ class GeneralCog(commands.Cog, name="General"):
     async def on_member_join(self, member: discord.Member):
         """Called when a new member joins a guild."""
         guild = member.guild
+        await self.bot.autorole_manager.handle_member_join(member)
+        guild_settings = await self.guild_manager.get_or_create_guild(guild.id)
+        if not guild_settings or not guild_settings.welcome_enabled:
+            return
         
+        welcome_channel = None
+        if guild_settings.welcome_channel_id:
+            welcome_channel = guild.get_channel(guild_settings.welcome_channel_id)
+        
+        if not welcome_channel:
+            logger.info("welcome channel not configured")
+
         embed = create_embed(
             title=f"Welcome to {guild.name}, {member.display_name}!",
             description=(
@@ -112,12 +123,11 @@ class GeneralCog(commands.Cog, name="General"):
         embed.set_thumbnail(url=member.display_avatar.url)
         embed.set_footer(text=f"You are the {guild.member_count}th member!")
 
-        # Send the embed to the user's DMs
         try:
-            await member.send(embed=embed)
+            await welcome_channel.send(content=member.mention, embed=embed)
             logger.info(f"Sent welcome DM to new member {member.display_name} in {guild.name}")
         except discord.Forbidden:
-            logger.warning(f"Failed to send welcome DM to {member.display_name}. They may have DMs disabled.")
+            logger.warning(f"Failed to send welcome message to {member.display_name}.")
 
 
     @commands.hybrid_command(name="ping", description="Checks the bot's latency.")
@@ -179,7 +189,6 @@ class GeneralCog(commands.Cog, name="General"):
                 await ctx.send(f"Failed to sync globally: {e}", ephemeral=True)
         else:
             await ctx.send("Invalid scope. Use `guild` (or nothing) to sync to this server, or `global` to sync everywhere.", ephemeral=True)
-
 
 
 async def setup(bot: GookyBot):

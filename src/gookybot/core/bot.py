@@ -3,7 +3,10 @@ import discord
 from discord.ext import commands
 from gookybot.database.connection import async_session_maker
 import logging
+from gookybot.features.autorole.manager import AutoRoleManager
 from gookybot.features.guild_management.manager import GuildManager
+from gookybot.features.levelling.manager import LevelingManager
+from gookybot.features.moderation.manager import SpamManager
 
 
 logger = logging.getLogger(__name__)
@@ -16,6 +19,9 @@ class GookyBot(commands.Bot):
         logger.info("Database session maker attached to bot instance.")
 
         self.guild_manager = GuildManager(self)
+        self.level_manager = LevelingManager(self)
+        self.autorole_manager = AutoRoleManager(self)
+        self.spam_manager = SpamManager(self)
         super().__init__(command_prefix=self.guild_manager.get_prefix, intents=intents, help_command=None, owner_id=BOT_OWNER_ID)
         
 
@@ -40,6 +46,10 @@ class GookyBot(commands.Bot):
         logger.info(f"Starting setup for {self.user}...")
 
         await self.load_all_cogs()
+        logger.info("Running post-load setup for cogs...")
+        autovc_cog = self.get_cog("AutoVC")
+        if autovc_cog:
+            await autovc_cog.initialize_and_cleanup()
         
         logger.info("Syncing global command tree...")
         await self.tree.sync()

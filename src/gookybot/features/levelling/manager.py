@@ -1,5 +1,4 @@
 from typing import List, Optional
-from gookybot.core.bot import GookyBot
 from gookybot.database.models import LevelingProfile
 import logging
 from sqlalchemy import select, func, desc
@@ -9,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class LevelingManager:
     
-    def __init__(self, bot: GookyBot):
+    def __init__(self, bot):
         self.db_session = bot.db_session
     
     def xp_for_level(self, level: int) -> int:
@@ -36,13 +35,23 @@ class LevelingManager:
                 
                 profile.xp += xp
 
+                old_level = profile.level
+                xp_for_next_level = self.xp_for_level(profile.level + 1)
+
                 while profile.xp >= self.xp_for_level(profile.level + 1):
                     profile.level += 1
+                    xp_for_next = self.xp_for_level(profile.level + 1)
                 
                 await session.commit()
+
+                if profile.level > old_level:
+                    return profile.level
+                else:
+                    return None
             except Exception as e:
                 await session.rollback()
                 logger.error(f"Error adding XP: {e}", exc_info=True)
+                return None
     
     async def get_user_profile(self, user_id: int, guild_id: int) -> Optional[LevelingProfile]:
         async with self.db_session() as session:
