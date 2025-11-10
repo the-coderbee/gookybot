@@ -4,7 +4,7 @@ import time
 import datetime
 from collections import defaultdict, deque
 from gookybot.database.models import Infraction
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, delete
 
 logger = logging.getLogger(__name__)
 
@@ -66,3 +66,18 @@ class SpamManager:
                 await session.rollback()
                 logger.error(f"Failed to issue spam warning: {e}", exc_info=True)
                 return 0
+
+    async def delete_user_infractions(self, user_id: int, guild_id: int):
+        """Deletes all of a user's infractions from a guild."""
+        async with self.db_session() as session:
+            try:
+                stmt = delete(Infraction).where(
+                    Infraction.user_id == user_id,
+                    Infraction.guild_id == guild_id
+                )
+                await session.execute(stmt)
+                await session.commit()
+                logger.info(f"Deleted infractions for user {user_id} in guild {guild_id}.")
+            except Exception as e:
+                await session.rollback()
+                logger.error(f"Error deleting user infractions: {e}", exc_info=True)

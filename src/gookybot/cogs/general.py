@@ -129,6 +129,24 @@ class GeneralCog(commands.Cog, name="General"):
         except discord.Forbidden:
             logger.warning(f"Failed to send welcome message to {member.display_name}.")
 
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        """
+        Called when a member leaves or is removed from a guild.
+        This will clean up all their data.
+        """
+        logger.info(f"Member {member.display_name} ({member.id}) left guild {member.guild.name} ({member.guild.id}). Cleaning up data.")
+        
+        # 1. Clean up Leveling Data
+        await self.bot.level_manager.delete_user_profile(member.id, member.guild.id)
+        
+        # 2. Clean up Infraction Data
+        await self.bot.spam_manager.delete_user_infractions(member.id, member.guild.id)
+        
+        # 3. Clean up AutoVC Data
+        autovc_cog = self.bot.get_cog("AutoVC")
+        if autovc_cog:
+            await autovc_cog.delete_user_vc(member.guild.id, member.id)
 
     @commands.hybrid_command(name="ping", description="Checks the bot's latency.")
     async def ping(self, ctx: commands.Context):

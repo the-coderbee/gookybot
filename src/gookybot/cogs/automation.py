@@ -103,8 +103,7 @@ class AutomationCog(commands.Cog):
         channels_repopulated = 0
         
         async with self.bot.db_session() as session:
-            # 1. Get all stored VCs from the database
-            stmt = select(AutoVC)  # <-- 2. Use AutoVC
+            stmt = select(AutoVC)
             result = await session.execute(stmt)
             all_temp_vcs = result.scalars().all()
             
@@ -114,14 +113,11 @@ class AutomationCog(commands.Cog):
                 channel = self.bot.get_channel(temp_vc.voice_channel_id) # <-- 3. Use voice_channel_id
                 
                 if channel is None:
-                    # The channel was deleted while the bot was offline.
-                    # We must clean up the database entry.
                     db_channels_to_delete.append(temp_vc.voice_channel_id) # <-- 4. Use voice_channel_id
                     logger.info(f"AutoVC: Cleaning stale DB entry for channel {temp_vc.voice_channel_id}")
                     continue
 
                 if len(channel.members) == 0:
-                    # It's an orphan and empty, delete it from Discord
                     try:
                         await channel.delete(reason="AutoVC: Startup cleanup")
                         db_channels_to_delete.append(temp_vc.voice_channel_id) # <-- 5. Use voice_channel_id
@@ -129,12 +125,9 @@ class AutomationCog(commands.Cog):
                     except Exception as e:
                         logger.error(f"Error deleting orphaned VC: {e}", exc_info=True)
                 else:
-                    # It's an orphan but people are in it!
-                    # Re-add it to our cache so we can manage it.
                     self.temp_vcs[temp_vc.user_discord_id] = temp_vc.voice_channel_id # <-- 6. Use correct columns
                     channels_repopulated += 1
 
-            # 2. Clean up the database in one go
             if db_channels_to_delete:
                 delete_stmt = delete(AutoVC).where(AutoVC.voice_channel_id.in_(db_channels_to_delete)) # <-- 7. Use AutoVC
                 await session.execute(delete_stmt)
@@ -157,12 +150,9 @@ class AutomationCog(commands.Cog):
         
         generator_channel_id = guild_settings.auto_vc_channel_id
         
-        # --- Handle Channel Creation ---
         if after.channel and after.channel.id == generator_channel_id:
             
-            # 1. CHECK THE CACHE (this is fast!)
             if member.id in self.temp_vcs:
-                # 2A. USER ALREADY HAS A CHANNEL: Move them to it
                 existing_channel = self.bot.get_channel(self.temp_vcs[member.id])
                 if existing_channel:
                     try:
@@ -171,24 +161,20 @@ class AutomationCog(commands.Cog):
                     except Exception as e:
                         logger.warning(f"Failed to move {member.display_name} to existing VC: {e}")
                 else:
-                    # The channel was deleted but our cache is stale.
                     self.temp_vcs.pop(member.id, None)
             
-            # 2B. USER DOES NOT HAVE A CHANNEL: Create one
             if member.id not in self.temp_vcs:
                 generator_channel = after.channel
                 category = generator_channel.category
                 channel_name = f"{DISPLAY_NAME_PREFIX}{member.display_name}'s VC"
                 
                 try:
-                    # Create the channel on Discord
                     new_channel = await member.guild.create_voice_channel(
                         channel_name,
                         category=category,
                         overwrites=generator_channel.overwrites
                     )
                     
-                    # --- ADD TO DB AND CACHE (USING NEW MODEL) ---
                     async with self.bot.db_session() as session:
                         new_db_vc = AutoVC(
                             voice_channel_id=new_channel.id, 
@@ -199,20 +185,14 @@ class AutomationCog(commands.Cog):
                         await session.commit()
                     
                     self.temp_vcs[member.id] = new_channel.id
-                    # -------------------------
                     
                     await member.move_to(new_channel)
                     logger.info(f"Created temp VC for {member.display_name} ({member.id}).")
                     
                 except Exception as e:
-                    # --- FIX FOR RACE CONDITION ---
-                    # If the DB insertion failed (e.g., UniqueViolationError)
-                    # it means the user *just* created a channel.
                     if 'new_channel' in locals():
                         await new_channel.delete(reason="AutoVC: Failed to create or race condition")
                     
-                    # Try to find the channel they must have just created
-                    # and move them into it.
                     async with self.bot.db_session() as session:
                         stmt = select(AutoVC).where(
                             AutoVC.user_discord_id == member.id,
@@ -227,27 +207,22 @@ class AutomationCog(commands.Cog):
 
                     logger.error(f"Error in AutoVC creation, handled race condition: {e}", exc_info=True)
 
-        # --- Handle Channel Deletion ---
         if before.channel:
-            # Check if the channel they left is one of ours
             owner_id = await self._get_owner_from_cache(before.channel.id)
             
             if owner_id and len(before.channel.members) == 0:
                 try:
                     await before.channel.delete(reason="AutoVC: Channel empty")
                     
-                    # --- REMOVE FROM DB AND CACHE ---
                     async with self.bot.db_session() as session:
                         delete_stmt = delete(AutoVC).where(AutoVC.user_discord_id == owner_id, AutoVC.guild_discord_id == before.channel.guild.id)
                         await session.execute(delete_stmt)
                         await session.commit()
                     
                     self.temp_vcs.pop(owner_id, None)
-                    # ----------------------------
                     
                     logger.info(f"Deleted temp VC '{before.channel.name}' as it was empty.")
                 except discord.NotFound:
-                    # Channel was already deleted, just clean up DB/cache
                     async with self.bot.db_session() as session:
                         delete_stmt = delete(AutoVC).where(AutoVC.user_discord_id == owner_id, AutoVC.guild_discord_id == before.channel.guild.id)
                         await session.execute(delete_stmt)
@@ -255,6 +230,25 @@ class AutomationCog(commands.Cog):
                     self.temp_vcs.pop(owner_id, None)
                 except Exception as e:
                     logger.error(f"Error in AutoVC deletion: {e}", exc_info=True)
+
+    async def delete_user_vc(self, guild_id: int, user_id: int):
+        """Finds and deletes a user's VC and DB entry. Called on guild leave."""
+        if user_id in self.temp_vcs:
+            channel_id = self.temp_vcs[user_id]
+            channel = self.bot.get_channel(channel_id)
+            if channel:
+                try:
+                    await channel.delete(reason="AutoVC: User left guild")
+                    logger.info(f"Deleted user's AutoVC {channel.name} ({user_id})")
+                except Exception as e:
+                    logger.error(f"Error deleting user's VC on guild leave: {e}")
+    
+            async with self.bot.db_session() as session:
+                delete_stmt = delete(AutoVC).where(AutoVC.owner_id == user_id, AutoVC.guild_discord_id == guild_id)
+                await session.execute(delete_stmt)
+                await session.commit()
+            self.temp_vcs.pop(user_id, None)
+
 
 async def setup(bot: GookyBot):
     await bot.add_cog(AutomationCog(bot))

@@ -1,7 +1,7 @@
 from typing import List, Optional
 from gookybot.database.models import LevelingProfile
 import logging
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, delete
 
 logger = logging.getLogger(__name__)
 
@@ -104,3 +104,18 @@ class LevelingManager:
             except Exception as e:
                 logger.error(f"Error getting leaderboard: {e}", exc_info=True)
                 return []
+    
+    async def delete_user_profile(self, user_id: int, guild_id: int):
+        """Deletes a user's leveling profile from a guild."""
+        async with self.db_session() as session:
+            try:
+                stmt = delete(LevelingProfile).where(
+                    LevelingProfile.user_discord_id == user_id,
+                    LevelingProfile.guild_discord_id == guild_id
+                )
+                await session.execute(stmt)
+                await session.commit()
+                logger.info(f"Deleted leveling profile for user {user_id} in guild {guild_id}.")
+            except Exception as e:
+                await session.rollback()
+                logger.error(f"Error deleting user profile: {e}", exc_info=True)
